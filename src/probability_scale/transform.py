@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from probability_scale.forest_fire import calculate_forest_fire_stats
 
 import pandas as pd
 
@@ -29,6 +30,29 @@ class ProbabilityEvent:
 
         return 1 / self.probability
 
+def build_forest_fire_event() -> ProbabilityEvent:
+    """
+    Build a probability event from real forest and landscape fire data.
+    """
+
+    stats = calculate_forest_fire_stats()
+
+    return ProbabilityEvent(
+        event="A randomly selected day has a forest or landscape fire",
+        category="Nature",
+        probability=stats.probability,
+        probability_type="daily_event_probability",
+        interpretation=f"About 1 in {stats.one_in_x:.1f} days",
+        source_name="Forest and landscape fires",
+        source_url="https://andmed.eesti.ee/datasets/metsa-ja-maastikutulekahjud",
+        notes=(
+            "Calculated from downloaded forest and landscape fire data. "
+            f"Observed period: {stats.start_date} to {stats.end_date}. "
+            f"Days with at least one event: {stats.days_with_event}. "
+            f"Total observed days: {stats.total_days_observed}. "
+            f"Total event records: {stats.event_count}."
+        ),
+    )
 
 def build_example_events() -> list[ProbabilityEvent]:
     """
@@ -89,16 +113,9 @@ def build_example_events() -> list[ProbabilityEvent]:
             source_url="https://andmed.eesti.ee/datasets/inimkannatanutega-liiklusonnetuste-andmed",
             notes="Example value for first MVP plot",
         ),
-        ProbabilityEvent(
-            event="A randomly selected day has a forest or landscape fire",
-            category="Nature",
-            probability=0.08,
-            probability_type="daily_event_probability",
-            interpretation="About 1 in 12.5 days",
-            source_name="Forest and landscape fires",
-            source_url="https://andmed.eesti.ee/datasets/metsa-ja-maastikutulekahjud",
-            notes="Example value for first MVP plot",
-        ),
+        
+        build_forest_fire_event(),
+
         ProbabilityEvent(
             event="A randomly selected day has an EE-ALARM crisis alert",
             category="Crisis",
