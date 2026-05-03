@@ -93,7 +93,7 @@ def build_death_event() -> ProbabilityEvent:
     stats = calculate_population_stats()
 
     return ProbabilityEvent(
-        event="A randomly selected 10-minute interval has at least one death in Estonia",
+        event="At least one birth in Estonia in a random 10-minute interval",
         category="Population",
         probability=stats.death_probability_10_min,
         probability_type="interval_event_probability",
@@ -116,7 +116,7 @@ def build_traffic_accident_event() -> ProbabilityEvent:
     stats = calculate_traffic_accident_stats()
 
     return ProbabilityEvent(
-        event="A randomly selected day has at least one traffic accident with injured people",
+        event="At least one traffic accident with injuries on a random day",
         category="Traffic",
         probability=stats.probability,
         probability_type="daily_event_probability",
@@ -138,7 +138,7 @@ def build_forest_fire_summer_event() -> ProbabilityEvent:
     stats = calculate_forest_fire_summer_share()
 
     return ProbabilityEvent(
-        event="A randomly selected forest or landscape fire happened in summer",
+        event="At least one forest or landscape fire on a random day",
         category="Nature",
         probability=stats.probability,
         probability_type="record_share",
