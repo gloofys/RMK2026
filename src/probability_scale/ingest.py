@@ -84,13 +84,6 @@ def build_pxweb_all_values_query(metadata: dict) -> dict:
         },
     }
 
-    return {
-        "query": query,
-        "response": {
-            "format": "CSV",
-        },
-    }
-
 
 def download_pxweb_csv(api_url: str, output_path: Path) -> None:
     """

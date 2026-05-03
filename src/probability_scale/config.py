@@ -37,8 +37,6 @@ STATISTICS_ESTONIA_RV030_API_URL = (
 
 BIRTHS_DEATHS_RAW_PATH = RAW_DATA_DIR / "rv030_births_deaths.csv"
 
-BIRTHS_DEATHS_RAW_PATH = RAW_DATA_DIR / "rv030_births_deaths.csv"
-
 STATISTICS_ESTONIA_TS093_API_URL = (
     "https://andmed.stat.ee/api/v1/et/stat/TS093"
 )
