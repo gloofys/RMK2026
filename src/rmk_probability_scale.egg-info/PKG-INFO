@@ -1,0 +1,203 @@
+Metadata-Version: 2.4
+Name: rmk-probability-scale
+Version: 0.1.0
+Summary: Probability scale of everyday, nature and crisis-related events in Estonia.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE.md
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Dynamic: license-file
+
+# Probability Scale of Estonia
+
+**From daily births to rare crisis alerts and forest fires**
+
+This project is a solution for the RMK data team internship 2026 test challenge.
+
+The goal of the challenge is to create a probability scale: a list of events
+with their probabilities, so that readers can develop a better intuition for
+probability.
+
+I chose events that are understandable to everyday readers and also relevant to
+environmental and public-sector data work.
+
+The project combines four areas:
+
+```text
+people + traffic + nature + crisis events
+```
+
+## Project idea
+
+People usually understand distances better than probabilities.
+
+For example, a few centimetres can be held in one hand, metres are useful for
+buildings and rooms, and kilometres are used for distances between cities.
+
+Probabilities are harder to understand intuitively. A probability such as
+`0.01` or `0.0001` is mathematically simple, but it is not always obvious
+whether it represents something common or rare.
+
+This project tries to make probabilities easier to understand by comparing
+different Estonian events on one visual scale.
+
+## Selected event groups
+
+The first version of the project includes examples from these groups:
+
+- Population events: births, deaths
+- Traffic events: traffic accidents with injured people
+- Nature and forest events: forest and landscape fires, forest inventory
+  related events
+- Crisis events: EE-ALARM crisis alerts
+
+## Important distinction
+
+Not every probability in this project means the same thing.
+
+For example:
+
+> A randomly selected resident dies within a year.
+
+This can be interpreted as an individual probability.
+
+But this:
+
+> A randomly selected day has a traffic accident with injured people.
+
+This is better interpreted as a daily event probability.
+
+Because of this, the processed dataset includes a column named
+`probability_type`.
+
+Example probability types:
+
+```text
+individual_probability
+daily_event_probability
+record_share
+area_share
+event_frequency
+```
+
+## Project structure
+
+```text
+rmk-probability-scale/
+|-- data/
+|   |-- raw/
+|   |-- interim/
+|   `-- processed/
+|       `-- probability_scale.csv
+|-- docs/
+|   `-- approach.md
+|-- outputs/
+|   `-- figures/
+|       `-- probability_scale.png
+|-- references/
+|   `-- sources.md
+|-- scripts/
+|   |-- make_plot.py
+|   `-- run_pipeline.py
+|-- src/
+|   `-- probability_scale/
+|-- tests/
+|   `-- test_smoke.py
+|-- README.md
+|-- LICENSE.md
+`-- pyproject.toml
+```
+
+## Current MVP
+
+The current version is an MVP.
+
+It uses a manually prepared example table in:
+
+```text
+data/processed/probability_scale.csv
+```
+
+The plot is generated from that table and saved to:
+
+```text
+outputs/figures/probability_scale.png
+```
+
+Later versions will replace the manually prepared example values with values
+calculated programmatically from public datasets.
+
+## How to run
+
+Install dependencies:
+
+```bash
+pip install pandas matplotlib
+```
+
+Run the plot script:
+
+```bash
+python scripts/make_plot.py
+```
+
+## Output
+
+The main output is a log-scale probability plot.
+
+A logarithmic scale is used because the selected events can have very different
+probabilities. Without a log scale, rare events would be squeezed together and
+would be harder to compare.
+
+## Data sources
+
+The planned data sources include:
+
+- Statistics Estonia / births and deaths
+- Estonian Open Data Portal / traffic accidents with injured people
+- Estonian Open Data Portal / forest and landscape fires
+- Estonian Open Data Portal / forest inventory data
+- Estonian Open Data Portal / EE-ALARM crisis alerts
+
+More detailed source notes are available in:
+
+```text
+references/sources.md
+```
+
+## Documentation
+
+The main explanation of the approach, assumptions and limitations is available
+in:
+
+```text
+docs/approach.md
+```
+
+## Limitations
+
+Some values in the first MVP are example values used to build the first working
+pipeline and visualisation.
+
+The final version should calculate these values directly from source datasets
+where possible.
+
+Another limitation is that different datasets may have different time ranges,
+definitions and update frequencies.
+
+Because of this, the project separates different probability types instead of
+presenting all values as personal risk.
+
+## Future improvements
+
+Possible future improvements:
+
+- replace all manually entered example values with automated data processing
+- add more RMK-specific forest events
+- add uncertainty notes or confidence intervals
+- compare regions or counties
+- add a Power BI or Streamlit version
+- add Bayesian reasoning for rare events
