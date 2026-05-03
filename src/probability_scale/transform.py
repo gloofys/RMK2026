@@ -54,6 +54,53 @@ def build_forest_fire_event() -> ProbabilityEvent:
         ),
     )
 
+def build_birth_event() -> ProbabilityEvent:
+    """
+    Build a probability event from real Statistics Estonia birth data.
+    """
+
+    stats = calculate_population_stats()
+
+    return ProbabilityEvent(
+        event="A randomly selected 10-minute interval has at least one birth in Estonia",
+        category="Population",
+        probability=stats.birth_probability_10_min,
+        probability_type="interval_event_probability",
+        interpretation=f"About 1 in {stats.birth_one_in_x:.1f} ten-minute intervals",
+        source_name="Statistics Estonia RV030 births/deaths data",
+        source_url="https://andmed.stat.ee/et/stat/RV030",
+        notes=(
+            "Calculated from Statistics Estonia RV030. "
+            f"Year: {stats.year}. "
+            f"Annual births: {stats.births}. "
+            "Probability estimated with a simple Poisson approximation."
+        ),
+    )
+
+
+def build_death_event() -> ProbabilityEvent:
+    """
+    Build a probability event from real Statistics Estonia death data.
+    """
+
+    stats = calculate_population_stats()
+
+    return ProbabilityEvent(
+        event="A randomly selected 10-minute interval has at least one death in Estonia",
+        category="Population",
+        probability=stats.death_probability_10_min,
+        probability_type="interval_event_probability",
+        interpretation=f"About 1 in {stats.death_one_in_x:.1f} ten-minute intervals",
+        source_name="Statistics Estonia RV030 births/deaths data",
+        source_url="https://andmed.stat.ee/et/stat/RV030",
+        notes=(
+            "Calculated from Statistics Estonia RV030. "
+            f"Year: {stats.year}. "
+            f"Annual deaths: {stats.deaths}. "
+            "Probability estimated with a simple Poisson approximation."
+        ),
+    )
+
 def build_example_events() -> list[ProbabilityEvent]:
     """
     Build the first MVP probability events.
@@ -83,26 +130,8 @@ def build_example_events() -> list[ProbabilityEvent]:
             source_url="https://andmed.eesti.ee/datasets/smi-statistilise-metsainventeerimise-andmestik",
             notes="Example value for first MVP plot",
         ),
-        ProbabilityEvent(
-            event="A randomly selected resident dies within a year",
-            category="Population",
-            probability=0.012,
-            probability_type="individual_probability",
-            interpretation="About 1 in 83 residents per year",
-            source_name="Statistics Estonia births and deaths",
-            source_url="https://andmed.eesti.ee/datasets/sunnid-surmad-ja-loomulik-iive",
-            notes="Example value for first MVP plot",
-        ),
-        ProbabilityEvent(
-            event="A randomly selected resident is born during a year",
-            category="Population",
-            probability=0.007,
-            probability_type="individual_probability",
-            interpretation="About 1 in 143 residents per year",
-            source_name="Statistics Estonia births and deaths",
-            source_url="https://andmed.eesti.ee/datasets/sunnid-surmad-ja-loomulik-iive",
-            notes="Example value for first MVP plot",
-        ),
+            build_death_event(),
+            build_birth_event(),
         ProbabilityEvent(
             event="A randomly selected day has a traffic accident with injured people",
             category="Traffic",
@@ -113,7 +142,7 @@ def build_example_events() -> list[ProbabilityEvent]:
             source_url="https://andmed.eesti.ee/datasets/inimkannatanutega-liiklusonnetuste-andmed",
             notes="Example value for first MVP plot",
         ),
-        
+
         build_forest_fire_event(),
 
         ProbabilityEvent(

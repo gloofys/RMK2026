@@ -30,3 +30,11 @@ FOREST_FIRE_CURRENT_YEAR_RAW_PATH = (
 FOREST_FIRE_HISTORY_RAW_PATH = (
     RAW_DATA_DIR / "metsa_ja_maastikutulekahjud_2014_kuni_2025.csv"
 )
+
+STATISTICS_ESTONIA_RV030_API_URL = (
+    "https://andmed.stat.ee/api/v1/et/stat/RV030"
+)
+
+BIRTHS_DEATHS_RAW_PATH = RAW_DATA_DIR / "rv030_births_deaths.csv"
+
+BIRTHS_DEATHS_RAW_PATH = RAW_DATA_DIR / "rv030_births_deaths.csv"
