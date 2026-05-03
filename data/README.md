@@ -1,5 +1,35 @@
-# Data Layout
+# Data folder
 
-- `raw/` contains original source files downloaded or copied from source systems.
-- `interim/` contains temporary cleaned or merged datasets.
-- `processed/` contains final analysis-ready tables used by the plotting step.
+This folder contains data used in the project.
+
+## Folder structure
+
+```text
+raw/
+interim/
+processed/
+```
+
+## raw
+
+The `raw` folder is intended for original downloaded source files.
+
+Raw data should not be edited manually.
+
+## interim
+
+The `interim` folder is intended for intermediate cleaned files.
+
+These files are created during processing and may change as the project
+develops.
+
+## processed
+
+The `processed` folder contains final processed files used for analysis and
+plotting.
+
+The main processed file is:
+
+```text
+processed/probability_scale.csv
+```

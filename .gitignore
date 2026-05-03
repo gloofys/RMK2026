@@ -14,6 +14,8 @@ data/interim/*
 !data/interim/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/probability_scale.csv
 
 outputs/figures/*
 !outputs/figures/.gitkeep
+!outputs/figures/probability_scale.png
