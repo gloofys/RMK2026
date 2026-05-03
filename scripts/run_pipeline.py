@@ -1,0 +1,7 @@
+"""Entry point for the end-to-end project pipeline."""
+
+from probability_scale.pipeline import run_pipeline
+
+
+if __name__ == "__main__":
+    run_pipeline()
