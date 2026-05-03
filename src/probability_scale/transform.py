@@ -1,7 +1,13 @@
 from dataclasses import dataclass
-from probability_scale.forest_fire import calculate_forest_fire_stats
+from probability_scale.forest_fire import (
+    calculate_forest_fire_stats,
+    calculate_forest_fire_summer_share,
+)
 from probability_scale.population import calculate_population_stats
-from probability_scale.traffic import calculate_traffic_accident_stats
+from probability_scale.traffic import (
+    calculate_traffic_accident_stats,
+    calculate_traffic_accident_summer_share,
+)
 import pandas as pd
 
 
@@ -124,6 +130,54 @@ def build_traffic_accident_event() -> ProbabilityEvent:
             "Daily probability estimated with a simple Poisson approximation."
         ),
     )
+def build_forest_fire_summer_event() -> ProbabilityEvent:
+    """
+    Build a probability event for forest and landscape fires happening in summer.
+    """
+
+    stats = calculate_forest_fire_summer_share()
+
+    return ProbabilityEvent(
+        event="A randomly selected forest or landscape fire happened in summer",
+        category="Nature",
+        probability=stats.probability,
+        probability_type="record_share",
+        interpretation=f"About 1 in {stats.one_in_x:.2f} forest or landscape fire records",
+        source_name="Forest and landscape fires",
+        source_url="https://andmed.eesti.ee/datasets/metsa-ja-maastikutulekahjud",
+        notes=(
+            "Calculated from downloaded forest and landscape fire data. "
+            "Summer is defined as June, July and August. "
+            f"Observed period: {stats.start_date} to {stats.end_date}. "
+            f"Summer records: {stats.matching_records}. "
+            f"Total records: {stats.total_records}."
+        ),
+    )
+
+
+def build_traffic_accident_summer_event() -> ProbabilityEvent:
+    """
+    Build a probability event for traffic accidents happening in summer.
+    """
+
+    stats = calculate_traffic_accident_summer_share()
+
+    return ProbabilityEvent(
+        event="A randomly selected traffic accident with injured people happened in summer",
+        category="Traffic",
+        probability=stats.probability,
+        probability_type="record_share",
+        interpretation=f"About 1 in {stats.one_in_x:.2f} traffic accidents",
+        source_name="Statistics Estonia TS093 traffic accidents data",
+        source_url="https://andmed.stat.ee/et/stat/TS093",
+        notes=(
+            "Calculated from Statistics Estonia TS093. "
+            "Summer is defined as June, July and August. "
+            f"Year: {stats.year}. "
+            f"Summer accidents: {stats.matching_accident_count}. "
+            f"Total accidents: {stats.total_accident_count}."
+        ),
+    )
 
 def build_example_events() -> list[ProbabilityEvent]:
     """
@@ -134,42 +188,10 @@ def build_example_events() -> list[ProbabilityEvent]:
     """
 
     return [
-        ProbabilityEvent(
-            event="A randomly selected forest stand has pine as dominant tree species",
-            category="Nature",
-            probability=0.30,
-            probability_type="record_share",
-            interpretation="About 1 in 3 forest stands",
-            source_name="Forest inventory / SMI",
-            source_url="https://andmed.eesti.ee/datasets/smi-statistilise-metsainventeerimise-andmestik",
-            notes="Example value for first MVP plot",
-        ),
-        ProbabilityEvent(
-            event="A randomly selected forest stand has birch as dominant tree species",
-            category="Nature",
-            probability=0.30,
-            probability_type="record_share",
-            interpretation="About 1 in 3 forest stands",
-            source_name="Forest inventory / SMI",
-            source_url="https://andmed.eesti.ee/datasets/smi-statistilise-metsainventeerimise-andmestik",
-            notes="Example value for first MVP plot",
-        ),
             build_death_event(),
             build_birth_event(),
-        build_traffic_accident_event(),
-
-        build_forest_fire_event(),
-
-        ProbabilityEvent(
-            event="A randomly selected day has an EE-ALARM crisis alert",
-            category="Crisis",
-            probability=0.01,
-            probability_type="daily_event_probability",
-            interpretation="About 1 in 100 days",
-            source_name="EE-ALARM crisis alerts",
-            source_url="https://andmed.eesti.ee/datasets/ulevaade-kriisiinfoteenuse-%28krit%29-sundmustest-ja-nende-raames-valja-saadetud-ohuteavitussonumitest-ee-alarm-%282025%29",
-            notes="Example value for first MVP plot",
-        ),
+            build_traffic_accident_event(),
+            build_forest_fire_event(),
     ]
 
 

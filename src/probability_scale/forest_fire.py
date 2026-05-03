@@ -23,6 +23,19 @@ class ForestFireStats:
         return 1 / self.probability
 
 
+@dataclass
+class ForestFireShareStats:
+    matching_records: int
+    total_records: int
+    start_date: str
+    end_date: str
+    probability: float
+
+    @property
+    def one_in_x(self) -> float:
+        return 1 / self.probability
+
+
 def read_forest_fire_csv(path: Path) -> pd.DataFrame:
     """
     Read one forest fire CSV file.
@@ -144,6 +157,43 @@ def calculate_forest_fire_stats() -> ForestFireStats:
         event_count=event_count,
         days_with_event=days_with_event,
         total_days_observed=total_days_observed,
+        start_date=str(start_date),
+        end_date=str(end_date),
+        probability=probability,
+    )
+
+
+def calculate_forest_fire_summer_share() -> ForestFireShareStats:
+    """
+    Calculate the share of forest and landscape fire records that happened in summer.
+
+    Summer is defined as June, July and August.
+    """
+
+    df = load_forest_fire_data()
+
+    date_column = find_date_column(df)
+
+    dates = pd.to_datetime(
+        df[date_column],
+        errors="coerce",
+        dayfirst=True,
+    ).dropna()
+
+    if dates.empty:
+        raise ValueError("No valid dates found in forest fire data.")
+
+    start_date = dates.dt.date.min()
+    end_date = dates.dt.date.max()
+
+    total_records = len(dates)
+    summer_records = dates.dt.month.isin([6, 7, 8]).sum()
+
+    probability = summer_records / total_records
+
+    return ForestFireShareStats(
+        matching_records=int(summer_records),
+        total_records=int(total_records),
         start_date=str(start_date),
         end_date=str(end_date),
         probability=probability,

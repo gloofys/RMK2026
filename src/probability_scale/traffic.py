@@ -17,6 +17,17 @@ class TrafficAccidentStats:
     @property
     def one_in_x(self) -> float:
         return 1 / self.probability
+    
+@dataclass
+class TrafficAccidentShareStats:
+    year: int
+    matching_accident_count: int
+    total_accident_count: int
+    probability: float
+
+    @property
+    def one_in_x(self) -> float:
+        return 1 / self.probability
 
 
 def normalize_text(value: str) -> str:
@@ -198,5 +209,61 @@ def calculate_traffic_accident_stats() -> TrafficAccidentStats:
         year=latest_year,
         accident_count=accident_count,
         days_in_year=days_in_year,
+        probability=probability,
+    )
+
+def calculate_traffic_accident_summer_share() -> TrafficAccidentShareStats:
+    """
+    Calculate the share of traffic accidents with injured people that happened in summer.
+
+    Summer is defined as June, July and August.
+    """
+
+    df = read_traffic_accidents_data()
+
+    indicator_column = find_column_by_keywords(df, ["naitaja", "indicator"])
+    month_column = find_column_by_keywords(df, ["kuu", "month"])
+    year_columns = find_year_columns(df)
+
+    latest_year_column = year_columns[-1]
+    latest_year = int(str(latest_year_column))
+
+    df = df.copy()
+
+    df["normalized_indicator"] = df[indicator_column].map(normalize_text)
+    df["normalized_month"] = df[month_column].map(normalize_text)
+    df["latest_year_value"] = df[latest_year_column].map(clean_numeric_value)
+
+    accident_rows = df[
+        df["normalized_indicator"].str.contains("liiklusonnetused", na=False)
+    ]
+
+    if accident_rows.empty:
+        raise ValueError("Could not find traffic accident rows in TS093 data.")
+
+    annual_total_rows = accident_rows[
+        accident_rows["normalized_month"].str.contains("kokku", na=False)
+    ]
+
+    if not annual_total_rows.empty:
+        total_accidents = int(annual_total_rows["latest_year_value"].iloc[0])
+    else:
+        total_accidents = int(accident_rows["latest_year_value"].sum())
+
+    summer_rows = accident_rows[
+        accident_rows["normalized_month"].isin(["juuni", "juuli", "august"])
+    ]
+
+    if summer_rows.empty:
+        raise ValueError("Could not find summer month rows in TS093 data.")
+
+    summer_accidents = int(summer_rows["latest_year_value"].sum())
+
+    probability = summer_accidents / total_accidents
+
+    return TrafficAccidentShareStats(
+        year=latest_year,
+        matching_accident_count=summer_accidents,
+        total_accident_count=total_accidents,
         probability=probability,
     )

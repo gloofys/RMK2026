@@ -50,3 +50,15 @@ def test_probability_plot_can_be_created(tmp_path) -> None:
 
     assert output_path.exists()
     assert output_path.stat().st_size > 0
+
+def test_probability_table_does_not_contain_placeholder_values() -> None:
+    """
+    Check that the generated table does not contain MVP placeholder notes.
+    """
+
+    df = build_probability_table()
+
+    notes = df["notes"].astype(str).str.lower()
+
+    assert not notes.str.contains("example value").any()
+    assert not notes.str.contains("placeholder").any()
