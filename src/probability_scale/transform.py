@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+
+import pandas as pd
+
 from probability_scale.forest_fire import (
     calculate_forest_fire_stats,
     calculate_forest_fire_summer_share,
@@ -8,7 +11,6 @@ from probability_scale.traffic import (
     calculate_traffic_accident_stats,
     calculate_traffic_accident_summer_share,
 )
-import pandas as pd
 
 
 @dataclass
@@ -37,29 +39,6 @@ class ProbabilityEvent:
 
         return 1 / self.probability
 
-def build_forest_fire_event() -> ProbabilityEvent:
-    """
-    Build a probability event from real forest and landscape fire data.
-    """
-
-    stats = calculate_forest_fire_stats()
-
-    return ProbabilityEvent(
-        event="A randomly selected day has a forest or landscape fire",
-        category="Nature",
-        probability=stats.probability,
-        probability_type="daily_event_probability",
-        interpretation=f"About 1 in {stats.one_in_x:.1f} days",
-        source_name="Forest and landscape fires",
-        source_url="https://andmed.eesti.ee/datasets/metsa-ja-maastikutulekahjud",
-        notes=(
-            "Calculated from downloaded forest and landscape fire data. "
-            f"Observed period: {stats.start_date} to {stats.end_date}. "
-            f"Days with at least one event: {stats.days_with_event}. "
-            f"Total observed days: {stats.total_days_observed}. "
-            f"Total event records: {stats.event_count}."
-        ),
-    )
 
 def build_birth_event() -> ProbabilityEvent:
     """
@@ -69,7 +48,7 @@ def build_birth_event() -> ProbabilityEvent:
     stats = calculate_population_stats()
 
     return ProbabilityEvent(
-        event="A randomly selected 10-minute interval has at least one birth in Estonia",
+        event="Birth in Estonia in a random 10-minute interval",
         category="Population",
         probability=stats.birth_probability_10_min,
         probability_type="interval_event_probability",
@@ -93,7 +72,7 @@ def build_death_event() -> ProbabilityEvent:
     stats = calculate_population_stats()
 
     return ProbabilityEvent(
-        event="At least one birth in Estonia in a random 10-minute interval",
+        event="Death in Estonia in a random 10-minute interval",
         category="Population",
         probability=stats.death_probability_10_min,
         probability_type="interval_event_probability",
@@ -108,6 +87,7 @@ def build_death_event() -> ProbabilityEvent:
         ),
     )
 
+
 def build_traffic_accident_event() -> ProbabilityEvent:
     """
     Build a probability event from real Statistics Estonia traffic accident data.
@@ -116,20 +96,71 @@ def build_traffic_accident_event() -> ProbabilityEvent:
     stats = calculate_traffic_accident_stats()
 
     return ProbabilityEvent(
-        event="At least one traffic accident with injuries on a random day",
+        event="Traffic accident with injuries in a random 10-minute interval",
         category="Traffic",
-        probability=stats.probability,
-        probability_type="daily_event_probability",
-        interpretation=f"About 1 in {stats.one_in_x:.2f} days",
+        probability=stats.probability_10_min,
+        probability_type="interval_event_probability",
+        interpretation=f"About 1 in {stats.one_in_x:.1f} ten-minute intervals",
         source_name="Statistics Estonia TS093 traffic accidents data",
         source_url="https://andmed.stat.ee/et/stat/TS093",
         notes=(
             "Calculated from Statistics Estonia TS093. "
             f"Year: {stats.year}. "
             f"Annual traffic accidents with injured people: {stats.accident_count}. "
-            "Daily probability estimated with a simple Poisson approximation."
+            "Probability estimated with a simple Poisson approximation."
         ),
     )
+
+
+def build_traffic_accident_summer_event() -> ProbabilityEvent:
+    """
+    Build a probability event for traffic accidents happening in summer.
+    """
+
+    stats = calculate_traffic_accident_summer_share()
+
+    return ProbabilityEvent(
+        event="Traffic accident with injuries happened in summer",
+        category="Traffic",
+        probability=stats.probability,
+        probability_type="record_share",
+        interpretation=f"About 1 in {stats.one_in_x:.2f} traffic accidents",
+        source_name="Statistics Estonia TS093 traffic accidents data",
+        source_url="https://andmed.stat.ee/et/stat/TS093",
+        notes=(
+            "Calculated from Statistics Estonia TS093. "
+            "Summer is defined as June, July and August. "
+            f"Year: {stats.year}. "
+            f"Summer accidents: {stats.matching_accident_count}. "
+            f"Total accidents: {stats.total_accident_count}."
+        ),
+    )
+
+
+def build_forest_fire_event() -> ProbabilityEvent:
+    """
+    Build a probability event from real forest and landscape fire data.
+    """
+
+    stats = calculate_forest_fire_stats()
+
+    return ProbabilityEvent(
+        event="Forest or landscape fire in a random 10-minute interval",
+        category="Nature",
+        probability=stats.probability_10_min,
+        probability_type="interval_event_probability",
+        interpretation=f"About 1 in {stats.one_in_x:.1f} ten-minute intervals",
+        source_name="Forest and landscape fires",
+        source_url="https://andmed.eesti.ee/datasets/metsa-ja-maastikutulekahjud",
+        notes=(
+            "Calculated from downloaded forest and landscape fire data. "
+            f"Observed period: {stats.start_date} to {stats.end_date}. "
+            f"Total event records: {stats.event_count}. "
+            "Probability estimated with a simple Poisson approximation."
+        ),
+    )
+
+
 def build_forest_fire_summer_event() -> ProbabilityEvent:
     """
     Build a probability event for forest and landscape fires happening in summer.
@@ -138,7 +169,7 @@ def build_forest_fire_summer_event() -> ProbabilityEvent:
     stats = calculate_forest_fire_summer_share()
 
     return ProbabilityEvent(
-        event="At least one forest or landscape fire on a random day",
+        event="Forest or landscape fire happened in summer",
         category="Nature",
         probability=stats.probability,
         probability_type="record_share",
@@ -155,44 +186,20 @@ def build_forest_fire_summer_event() -> ProbabilityEvent:
     )
 
 
-def build_traffic_accident_summer_event() -> ProbabilityEvent:
+def build_probability_events() -> list[ProbabilityEvent]:
     """
-    Build a probability event for traffic accidents happening in summer.
-    """
+    Build probability events for the current version.
 
-    stats = calculate_traffic_accident_summer_share()
-
-    return ProbabilityEvent(
-        event="A randomly selected traffic accident with injured people happened in summer",
-        category="Traffic",
-        probability=stats.probability,
-        probability_type="record_share",
-        interpretation=f"About 1 in {stats.one_in_x:.2f} traffic accidents",
-        source_name="Statistics Estonia TS093 traffic accidents data",
-        source_url="https://andmed.stat.ee/et/stat/TS093",
-        notes=(
-            "Calculated from Statistics Estonia TS093. "
-            "Summer is defined as June, July and August. "
-            f"Year: {stats.year}. "
-            f"Summer accidents: {stats.matching_accident_count}. "
-            f"Total accidents: {stats.total_accident_count}."
-        ),
-    )
-
-def build_example_events() -> list[ProbabilityEvent]:
-    """
-    Build the first MVP probability events.
-
-    These values are example values for the first working version.
-    Later, they should be replaced with values calculated from source data.
+    The current version only includes events that are calculated from
+    downloaded or API-based public datasets.
     """
 
     return [
-            build_death_event(),
-            build_birth_event(),
-            build_traffic_accident_event(),
-            build_forest_fire_event(),
-    ]
+    build_death_event(),
+    build_birth_event(),
+    build_traffic_accident_event(),
+    build_forest_fire_event(),
+]
 
 
 def build_probability_table() -> pd.DataFrame:
@@ -200,7 +207,7 @@ def build_probability_table() -> pd.DataFrame:
     Convert probability events into a processed probability table.
     """
 
-    events = build_example_events()
+    events = build_probability_events()
 
     rows = []
 
@@ -223,4 +230,3 @@ def build_probability_table() -> pd.DataFrame:
     df = df.sort_values("probability", ascending=False)
 
     return df
-    

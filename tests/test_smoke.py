@@ -62,3 +62,13 @@ def test_probability_table_does_not_contain_placeholder_values() -> None:
 
     assert not notes.str.contains("example value").any()
     assert not notes.str.contains("placeholder").any()
+
+def test_probability_table_has_enough_real_events() -> None:
+    """
+    Check that the final probability table has enough real events
+    for the first interval-based probability scale.
+    """
+
+    df = build_probability_table()
+
+    assert len(df) >= 4

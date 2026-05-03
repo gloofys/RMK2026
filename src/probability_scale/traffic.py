@@ -11,13 +11,14 @@ from probability_scale.config import TRAFFIC_ACCIDENTS_RAW_PATH
 class TrafficAccidentStats:
     year: int
     accident_count: int
-    days_in_year: int
-    probability: float
+    intervals_in_year: int
+    probability_10_min: float
 
     @property
     def one_in_x(self) -> float:
-        return 1 / self.probability
-    
+        return 1 / self.probability_10_min
+
+
 @dataclass
 class TrafficAccidentShareStats:
     year: int
@@ -140,8 +141,6 @@ def poisson_probability_at_least_one(
 ) -> float:
     """
     Estimate probability that at least one event occurs in a random interval.
-
-    P(at least one event) = 1 - exp(-lambda)
     """
 
     event_rate = event_count / interval_count
@@ -149,21 +148,14 @@ def poisson_probability_at_least_one(
     return 1 - math.exp(-event_rate)
 
 
-def calculate_traffic_accident_stats() -> TrafficAccidentStats:
+def get_latest_traffic_accident_rows() -> tuple[pd.DataFrame, str, int]:
     """
-    Calculate the probability that a randomly selected day has at least one
-    traffic accident with injured people.
-
-    TS093 is read as a wide table with columns like:
-    Näitaja, Kuu, 1990, 1991, ..., 2024.
-
-    The calculation uses the latest available year and the annual total row.
+    Return traffic accident rows, latest year column and latest year.
     """
 
     df = read_traffic_accidents_data()
 
     indicator_column = find_column_by_keywords(df, ["naitaja", "indicator"])
-    month_column = find_column_by_keywords(df, ["kuu", "month"])
     year_columns = find_year_columns(df)
 
     latest_year_column = year_columns[-1]
@@ -172,7 +164,6 @@ def calculate_traffic_accident_stats() -> TrafficAccidentStats:
     df = df.copy()
 
     df["normalized_indicator"] = df[indicator_column].map(normalize_text)
-    df["normalized_month"] = df[month_column].map(normalize_text)
     df["latest_year_value"] = df[latest_year_column].map(clean_numeric_value)
 
     accident_rows = df[
@@ -181,6 +172,24 @@ def calculate_traffic_accident_stats() -> TrafficAccidentStats:
 
     if accident_rows.empty:
         raise ValueError("Could not find traffic accident rows in TS093 data.")
+
+    return accident_rows, latest_year_column, latest_year
+
+
+def calculate_traffic_accident_stats() -> TrafficAccidentStats:
+    """
+    Calculate the probability that a randomly selected 10-minute interval has
+    at least one traffic accident with injured people.
+
+    The calculation uses the latest available year and a simple Poisson approximation.
+    """
+
+    accident_rows, _, latest_year = get_latest_traffic_accident_rows()
+
+    month_column = find_column_by_keywords(accident_rows, ["kuu", "month"])
+
+    accident_rows = accident_rows.copy()
+    accident_rows["normalized_month"] = accident_rows[month_column].map(normalize_text)
 
     annual_total_rows = accident_rows[
         accident_rows["normalized_month"].str.contains("kokku", na=False)
@@ -189,8 +198,7 @@ def calculate_traffic_accident_stats() -> TrafficAccidentStats:
     if not annual_total_rows.empty:
         accident_count = int(annual_total_rows["latest_year_value"].iloc[0])
     else:
-        monthly_rows = accident_rows.dropna(subset=["latest_year_value"])
-        accident_count = int(monthly_rows["latest_year_value"].sum())
+        accident_count = int(accident_rows["latest_year_value"].sum())
 
     if accident_count <= 0:
         raise ValueError(
@@ -199,18 +207,20 @@ def calculate_traffic_accident_stats() -> TrafficAccidentStats:
         )
 
     days_in_year = 366 if calendar.isleap(latest_year) else 365
+    intervals_in_year = days_in_year * 24 * 6
 
-    probability = poisson_probability_at_least_one(
+    probability_10_min = poisson_probability_at_least_one(
         event_count=accident_count,
-        interval_count=days_in_year,
+        interval_count=intervals_in_year,
     )
 
     return TrafficAccidentStats(
         year=latest_year,
         accident_count=accident_count,
-        days_in_year=days_in_year,
-        probability=probability,
+        intervals_in_year=intervals_in_year,
+        probability_10_min=probability_10_min,
     )
+
 
 def calculate_traffic_accident_summer_share() -> TrafficAccidentShareStats:
     """
@@ -219,27 +229,12 @@ def calculate_traffic_accident_summer_share() -> TrafficAccidentShareStats:
     Summer is defined as June, July and August.
     """
 
-    df = read_traffic_accidents_data()
+    accident_rows, _, latest_year = get_latest_traffic_accident_rows()
 
-    indicator_column = find_column_by_keywords(df, ["naitaja", "indicator"])
-    month_column = find_column_by_keywords(df, ["kuu", "month"])
-    year_columns = find_year_columns(df)
+    month_column = find_column_by_keywords(accident_rows, ["kuu", "month"])
 
-    latest_year_column = year_columns[-1]
-    latest_year = int(str(latest_year_column))
-
-    df = df.copy()
-
-    df["normalized_indicator"] = df[indicator_column].map(normalize_text)
-    df["normalized_month"] = df[month_column].map(normalize_text)
-    df["latest_year_value"] = df[latest_year_column].map(clean_numeric_value)
-
-    accident_rows = df[
-        df["normalized_indicator"].str.contains("liiklusonnetused", na=False)
-    ]
-
-    if accident_rows.empty:
-        raise ValueError("Could not find traffic accident rows in TS093 data.")
+    accident_rows = accident_rows.copy()
+    accident_rows["normalized_month"] = accident_rows[month_column].map(normalize_text)
 
     annual_total_rows = accident_rows[
         accident_rows["normalized_month"].str.contains("kokku", na=False)

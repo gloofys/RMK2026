@@ -28,24 +28,39 @@ CATEGORY_COLORS = {
 
 def format_one_in_x(value: float) -> str:
     """
-    Format '1 in X' nicely for labels.
+    Format the one_in_x value for plot labels.
     """
 
     if value >= 100:
         return f"1 in {value:,.0f}"
+
     if value >= 10:
         return f"1 in {value:.1f}"
+
     return f"1 in {value:.2f}"
+
+
+def format_point_label(row: pd.Series) -> str:
+    """
+    Format point labels.
+    """
+
+    return format_one_in_x(row["one_in_x"])
 
 
 def wrap_event_label(text: str, width: int = 34) -> str:
     """
     Wrap long event labels onto multiple lines.
     """
+
     return fill(text, width=width)
 
 
 def validate_probability_table(df: pd.DataFrame) -> None:
+    """
+    Validate that the probability table contains all required columns.
+    """
+
     missing_columns = REQUIRED_COLUMNS - set(df.columns)
 
     if missing_columns:
@@ -54,50 +69,53 @@ def validate_probability_table(df: pd.DataFrame) -> None:
 
 def create_probability_scale_plot(df: pd.DataFrame, output_path: Path) -> None:
     """
-    Create a more readable horizontal probability plot.
+    Create a readable horizontal probability scale plot.
+
+    The x-axis uses one_in_x instead of raw probability because it is easier
+    for readers to understand: larger values mean rarer events.
     """
 
     validate_probability_table(df)
 
     df = df.copy()
-    df = df.sort_values("probability", ascending=False).reset_index(drop=True)
+    df = df.sort_values("one_in_x", ascending=True).reset_index(drop=True)
 
     df["wrapped_event"] = df["event"].apply(wrap_event_label)
     df["color"] = df["category"].map(CATEGORY_COLORS).fillna("#333333")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig_height = max(6, len(df) * 1.1)
+    fig_height = max(6, len(df) * 1.05)
     fig, ax = plt.subplots(figsize=(13, fig_height))
 
     y_positions = list(range(len(df)))
 
-    # Lollipop lines
+    min_x = max(df["one_in_x"].min() * 0.8, 1)
+
     for i, row in df.iterrows():
         ax.hlines(
             y=i,
-            xmin=df["probability"].min() * 0.9,
-            xmax=row["probability"],
+            xmin=min_x,
+            xmax=row["one_in_x"],
             color="#cccccc",
             linewidth=1.2,
             zorder=1,
         )
 
-    # Points
     ax.scatter(
-        df["probability"],
+        df["one_in_x"],
         y_positions,
         s=90,
         c=df["color"],
         zorder=3,
     )
 
-    # Labels next to points
     for i, row in df.iterrows():
-        label = format_one_in_x(row["one_in_x"])
+        label = format_point_label(row)
+
         ax.annotate(
             label,
-            (row["probability"], i),
+            (row["one_in_x"], i),
             xytext=(8, 0),
             textcoords="offset points",
             va="center",
@@ -109,37 +127,42 @@ def create_probability_scale_plot(df: pd.DataFrame, output_path: Path) -> None:
     ax.invert_yaxis()
 
     ax.set_xscale("log")
-    ax.set_xlabel("Probability (log scale)", fontsize=11)
+    ax.set_xlim(
+    left=max(df["one_in_x"].min() * 0.75, 1),
+    right=df["one_in_x"].max() * 1.8,
+)
+    ax.set_xlabel("Rarity: 1 in X, log scale — farther right means rarer", fontsize=11)
 
-    ax.set_title(
-        "Probability Scale of Estonia\n"
-        "Real events from public datasets",
-        fontsize=14,
-        pad=16,
-    )
+    fig.suptitle(
+    "Probability Scale of Estonia\n"
+    "Real events from public datasets",
+    fontsize=15,
+    y=0.96,
+)
 
-    # Friendlier major ticks
-    tick_values = [1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.001]
+    tick_values = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
     visible_ticks = [
-        tick for tick in tick_values
-        if df["probability"].min() * 0.8 <= tick <= df["probability"].max() * 1.2
+        tick
+        for tick in tick_values
+        if df["one_in_x"].min() * 0.8 <= tick <= df["one_in_x"].max() * 1.4
     ]
 
     if visible_ticks:
         ax.set_xticks(visible_ticks)
-        ax.set_xticklabels([str(tick) for tick in visible_ticks])
+        ax.set_xticklabels([f"1 in {tick}" for tick in visible_ticks])
 
-    ax.grid(True, axis="x", linestyle="--", linewidth=0.6, alpha=0.7)
+    ax.grid(True, axis="x", linestyle="-", linewidth=0.6, alpha=0.7)
     ax.set_axisbelow(True)
 
-    # Clean spines
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # Legend
     categories_present = df["category"].dropna().unique().tolist()
+
     handles = []
     for category in categories_present:
+        color = CATEGORY_COLORS.get(category, "#333333")
+
         handles.append(
             plt.Line2D(
                 [0],
@@ -148,17 +171,23 @@ def create_probability_scale_plot(df: pd.DataFrame, output_path: Path) -> None:
                 linestyle="",
                 markersize=8,
                 label=category,
-                markerfacecolor=CATEGORY_COLORS.get(category, "#333333"),
-                markeredgecolor=CATEGORY_COLORS.get(category, "#333333"),
+                markerfacecolor=color,
+                markeredgecolor=color,
             )
         )
 
     if handles:
-        ax.legend(handles=handles, title="Category", loc="lower right")
+        ax.legend(
+            handles=handles,
+            title="Category",
+            loc="center left",
+            bbox_to_anchor=(1.02, 0.5),
+            frameon=True,
+        )
 
-    plt.subplots_adjust(left=0.38, right=0.95, top=0.88, bottom=0.12)
+    plt.subplots_adjust(left=0.30, right=0.78, top=0.82, bottom=0.12)
 
-    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    fig.savefig(output_path, dpi=300, bbox_inches="tight", pad_inches=0.25)
     plt.close(fig)
 
 
@@ -166,5 +195,9 @@ def create_probability_scale_plot_from_csv(
     input_path: Path,
     output_path: Path,
 ) -> None:
+    """
+    Read a processed probability CSV file and create the probability scale plot.
+    """
+
     df = pd.read_csv(input_path)
     create_probability_scale_plot(df, output_path)
