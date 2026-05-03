@@ -1,21 +1,21 @@
+# Python cache
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.coverage
-htmlcov/
+
+# Build / install artifacts
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
 .venv/
 venv/
+env/
 
-data/raw/*
-!data/raw/.gitkeep
-data/interim/*
-!data/interim/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-!data/processed/probability_scale.csv
+# Raw downloaded data
+data/raw/*.csv
 
-outputs/figures/*
-!outputs/figures/.gitkeep
-!outputs/figures/probability_scale.png
+# OS / editor
+.DS_Store
+.vscode/
