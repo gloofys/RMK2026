@@ -5,28 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rmk-probability-scale"
 version = "0.1.0"
-description = "Starter structure for the RMK Data Team Internship 2026 test challenge."
+description = "Probability scale of everyday, nature and crisis-related events in Estonia."
 readme = "README.md"
-requires-python = ">=3.11"
-authors = [
-  { name = "Your Name" },
-]
+requires-python = ">=3.10"
 dependencies = [
-  "matplotlib>=3.8",
-  "pandas>=2.2",
+    "pandas",
+    "matplotlib",
 ]
-
-[project.optional-dependencies]
-dev = [
-  "pytest>=8.0",
-]
-
-[tool.setuptools]
-package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-testpaths = ["tests"]
