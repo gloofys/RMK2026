@@ -1,7 +1,6 @@
-"""Entry point for downloading or loading source data."""
-
-from probability_scale.ingest import fetch_sources
+from probability_scale.ingest import download_raw_data
 
 
 if __name__ == "__main__":
-    fetch_sources()
+    download_raw_data()
+    print("Raw data downloaded successfully.")
