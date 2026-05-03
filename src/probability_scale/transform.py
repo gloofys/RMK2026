@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from probability_scale.forest_fire import calculate_forest_fire_stats
-
+from probability_scale.population import calculate_population_stats
+from probability_scale.traffic import calculate_traffic_accident_stats
 import pandas as pd
 
 
@@ -101,6 +102,29 @@ def build_death_event() -> ProbabilityEvent:
         ),
     )
 
+def build_traffic_accident_event() -> ProbabilityEvent:
+    """
+    Build a probability event from real Statistics Estonia traffic accident data.
+    """
+
+    stats = calculate_traffic_accident_stats()
+
+    return ProbabilityEvent(
+        event="A randomly selected day has at least one traffic accident with injured people",
+        category="Traffic",
+        probability=stats.probability,
+        probability_type="daily_event_probability",
+        interpretation=f"About 1 in {stats.one_in_x:.2f} days",
+        source_name="Statistics Estonia TS093 traffic accidents data",
+        source_url="https://andmed.stat.ee/et/stat/TS093",
+        notes=(
+            "Calculated from Statistics Estonia TS093. "
+            f"Year: {stats.year}. "
+            f"Annual traffic accidents with injured people: {stats.accident_count}. "
+            "Daily probability estimated with a simple Poisson approximation."
+        ),
+    )
+
 def build_example_events() -> list[ProbabilityEvent]:
     """
     Build the first MVP probability events.
@@ -132,16 +156,7 @@ def build_example_events() -> list[ProbabilityEvent]:
         ),
             build_death_event(),
             build_birth_event(),
-        ProbabilityEvent(
-            event="A randomly selected day has a traffic accident with injured people",
-            category="Traffic",
-            probability=0.75,
-            probability_type="daily_event_probability",
-            interpretation="About 1 in 1.3 days",
-            source_name="Traffic accidents with injured people",
-            source_url="https://andmed.eesti.ee/datasets/inimkannatanutega-liiklusonnetuste-andmed",
-            notes="Example value for first MVP plot",
-        ),
+        build_traffic_accident_event(),
 
         build_forest_fire_event(),
 

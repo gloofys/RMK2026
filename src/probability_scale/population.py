@@ -25,13 +25,17 @@ class PopulationStats:
         return 1 / self.death_probability_10_min
 
 
-def normalize_column_name(column_name: str) -> str:
+def normalize_text(value: str) -> str:
     """
-    Normalize Estonian column names for easier matching.
+    Normalize Estonian text for easier matching.
     """
 
     return (
-        column_name.lower()
+        str(value)
+        .strip()
+        .lower()
+        .replace("\ufeff", "")
+        .replace('"', "")
         .replace("ä", "a")
         .replace("ö", "o")
         .replace("ü", "u")
@@ -51,21 +55,31 @@ def read_births_deaths_data() -> pd.DataFrame:
             "`python scripts/fetch_data.py` first."
         )
 
-    return pd.read_csv(
-        BIRTHS_DEATHS_RAW_PATH,
-        sep=None,
-        engine="python",
-        encoding="utf-8-sig",
+    encodings = ["utf-8-sig", "utf-8", "cp1257"]
+
+    for encoding in encodings:
+        try:
+            return pd.read_csv(
+                BIRTHS_DEATHS_RAW_PATH,
+                sep=None,
+                engine="python",
+                encoding=encoding,
+            )
+        except UnicodeDecodeError:
+            continue
+
+    raise UnicodeDecodeError(
+        "Could not read births/deaths CSV with supported encodings."
     )
 
 
 def find_column_by_keywords(df: pd.DataFrame, keywords: list[str]) -> str:
     """
-    Find a column where the normalized name contains one of the given keywords.
+    Find a column where the normalized column name contains one of the keywords.
     """
 
     for column in df.columns:
-        normalized = normalize_column_name(column)
+        normalized = normalize_text(column)
 
         if any(keyword in normalized for keyword in keywords):
             return column
@@ -76,26 +90,9 @@ def find_column_by_keywords(df: pd.DataFrame, keywords: list[str]) -> str:
     )
 
 
-def find_value_column(df: pd.DataFrame) -> str:
-    """
-    Find the numeric value column in a PxWeb CSV output.
-    """
-
-    possible_names = ["value", "obsvalue", "obs_value", "väärtus", "vaartus"]
-
-    for column in df.columns:
-        normalized = normalize_column_name(column)
-
-        if normalized in possible_names:
-            return column
-
-    # Fallback: use the last column, which is commonly the value column.
-    return df.columns[-1]
-
-
 def clean_numeric_value(value) -> float:
     """
-    Convert a value from Statistics Estonia CSV to float.
+    Convert a Statistics Estonia CSV value to float.
     """
 
     if pd.isna(value):
@@ -116,8 +113,6 @@ def poisson_probability_at_least_one(
     """
     Estimate probability that at least one event occurs in a random interval.
 
-    This uses a simple Poisson approximation:
-
     P(at least one event) = 1 - exp(-lambda)
     """
 
@@ -130,50 +125,42 @@ def calculate_population_stats() -> PopulationStats:
     """
     Calculate birth and death probabilities from Statistics Estonia RV030.
 
+    RV030 is read as a wide table with columns like:
+    Aasta, Elussünnid, Surmad, Loomulik iive.
+
     The probabilities are calculated for a randomly selected 10-minute interval.
     """
 
     df = read_births_deaths_data()
 
     year_column = find_column_by_keywords(df, ["aasta", "year"])
-    indicator_column = find_column_by_keywords(df, ["naitaja", "indicator"])
-    value_column = find_value_column(df)
+    births_column = find_column_by_keywords(df, ["elussunnid", "birth"])
+    deaths_column = find_column_by_keywords(df, ["surmad", "death"])
 
     df = df.copy()
-    df["normalized_indicator"] = df[indicator_column].map(normalize_column_name)
-    df["numeric_value"] = df[value_column].map(clean_numeric_value)
 
-    df = df.dropna(subset=["numeric_value"])
+    df["year_numeric"] = pd.to_numeric(df[year_column], errors="coerce")
+    df["births_numeric"] = df[births_column].map(clean_numeric_value)
+    df["deaths_numeric"] = df[deaths_column].map(clean_numeric_value)
 
-    df[year_column] = pd.to_numeric(df[year_column], errors="coerce")
-    df = df.dropna(subset=[year_column])
-    df[year_column] = df[year_column].astype(int)
-
-    births_df = df[df["normalized_indicator"].str.contains("elussunnid")]
-    deaths_df = df[df["normalized_indicator"].str.fullmatch("surmad")]
-
-    if births_df.empty:
-        raise ValueError("Could not find births row in RV030 data.")
-
-    if deaths_df.empty:
-        raise ValueError("Could not find deaths row in RV030 data.")
-
-    common_years = sorted(
-        set(births_df[year_column]).intersection(set(deaths_df[year_column])),
-        reverse=True,
+    df = df.dropna(
+        subset=[
+            "year_numeric",
+            "births_numeric",
+            "deaths_numeric",
+        ]
     )
 
-    if not common_years:
-        raise ValueError("Could not find a year with both births and deaths.")
+    if df.empty:
+        raise ValueError("No valid birth/death rows found in RV030 data.")
 
-    latest_year = common_years[0]
+    df["year_numeric"] = df["year_numeric"].astype(int)
 
-    births = int(
-        births_df.loc[births_df[year_column] == latest_year, "numeric_value"].iloc[0]
-    )
-    deaths = int(
-        deaths_df.loc[deaths_df[year_column] == latest_year, "numeric_value"].iloc[0]
-    )
+    latest_year = int(df["year_numeric"].max())
+    latest_row = df[df["year_numeric"] == latest_year].iloc[0]
+
+    births = int(latest_row["births_numeric"])
+    deaths = int(latest_row["deaths_numeric"])
 
     days_in_year = 366 if calendar.isleap(latest_year) else 365
     intervals_per_year = days_in_year * 24 * 6
@@ -182,6 +169,7 @@ def calculate_population_stats() -> PopulationStats:
         event_count=births,
         interval_count=intervals_per_year,
     )
+
     death_probability = poisson_probability_at_least_one(
         event_count=deaths,
         interval_count=intervals_per_year,

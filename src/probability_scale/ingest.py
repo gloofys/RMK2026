@@ -2,6 +2,8 @@ from pathlib import Path
 from probability_scale.config import (
     BIRTHS_DEATHS_RAW_PATH,
     STATISTICS_ESTONIA_RV030_API_URL,
+    STATISTICS_ESTONIA_TS093_API_URL,
+    TRAFFIC_ACCIDENTS_RAW_PATH,
 )
 import requests
 
@@ -55,6 +57,7 @@ def download_raw_data() -> None:
 
     download_forest_fire_data()
     download_births_deaths_data()
+    download_traffic_accidents_data()
 
 def build_pxweb_all_values_query(metadata: dict) -> dict:
     """
@@ -105,7 +108,7 @@ def download_pxweb_csv(api_url: str, output_path: Path) -> None:
     data_response = requests.post(api_url, json=query, timeout=30)
     data_response.raise_for_status()
 
-    output_path.write_text(data_response.text, encoding="utf-8")
+    output_path.write_bytes(data_response.content)
 
 
 def download_births_deaths_data() -> None:
@@ -116,4 +119,14 @@ def download_births_deaths_data() -> None:
     download_pxweb_csv(
         api_url=STATISTICS_ESTONIA_RV030_API_URL,
         output_path=BIRTHS_DEATHS_RAW_PATH,
+    )
+
+def download_traffic_accidents_data() -> None:
+    """
+    Download Statistics Estonia TS093 traffic accidents data.
+    """
+
+    download_pxweb_csv(
+        api_url=STATISTICS_ESTONIA_TS093_API_URL,
+        output_path=TRAFFIC_ACCIDENTS_RAW_PATH,
     )
